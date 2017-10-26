@@ -3,91 +3,104 @@
 <html lang="zh"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"> 
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 	<title>sketchpad-简单的HTML5 Canvas涂鸦画板插件</title>
 	
 	<link rel="stylesheet" type="text/css" href="../css/normalize.css">
 	<link rel="stylesheet" type="text/css" href="../css/demo.css">
 	<link rel="stylesheet" href="../css/sketchpad.css">
-	<style>
-      .sketchpad {
-        background: #FFF;
-        width: 400px;
-        height: 400px;
-        border-radius: 2px;
 
-        -webkit-box-shadow: 2px 2px 5px 0px rgba(50, 50, 50, 0.75);
-        -moz-box-shadow: 2px 2px 5px 0px rgba(50, 50, 50, 0.75);
-        box-shadow: 2px 2px 5px 0px rgba(50, 50, 50, 0.75);
-      }
-    	</style>
 	<!--[if IE]>
 		<script src="http://libs.useso.com/js/html5shiv/3.7/html5shiv.min.js"></script>
 	<![endif]-->
 </head>
 <body>
 
-
 <div id="main_content_wrap" class="outer">
-  <section id="main_content" class="inner">
-	<p class="center">undo：撤销操作。redo：重做操作。可以通过颜色拾取器修改线条的颜色。拖动滑块可以修改线条的尺寸。animate按钮可以播放绘制的图像</p>
-	<div style="text-align: center">
-	  <canvas class="sketchpad" id="sketchpad" width="400" height="400" style="cursor: crosshair;"><canvas>
-	</canvas></canvas></div>
-	<div style="text-align: center">
-	  <button onclick="undo()">撤销</button>
-	  <button onclick="redo()">重做</button>
-	  <input id="color-picker" type="color">
-	  <input id="size-picker" type="range" min="1" max="50">
-	  <button onclick="animateSketchpad()">animate</button>
-	</div>
-	<p class="center">你可以将sketchpad保存为Json或对象，然后在其它地方恢复原来的画板设置：</p>
-	<div style="text-align: center; margin: 12px 0 12px">
-	  <button id="recover-button" onclick="recover()">生成图像</button>
-	</div>
-	<div style="text-align: center">
-	  <canvas class="sketchpad" id="other-sketchpad"><canvas>
-	</canvas></canvas></div>
-  </section>
+    <section id="main_content" class="inner">
+        <p class="center">可以通过颜色拾取器修改线条的颜色。拖动滑块可以修改线条的尺寸。</p>
+
+        <div style="text-align: center">
+            <canvas class="sketchpad" id="sketchpad" width="400" height="400" style="cursor: crosshair;">浏览器不支持画板</canvas>
+        </div>
+        <!-- 操作栏-->
+        <div style="text-align: center">
+            <button onclick="undo()"> < </button>
+            <button onclick="redo()"> > </button>
+            <button onclick="clearAll()"> 清空 </button>
+            <button onclick="animateSketchpad()">过程回放</button>
+            <input id="color-picker" type="color">
+            <input id="size-picker" type="range" min="5" max="20">
+        </div>
+
+        <!--<p class="center">你可以将sketchpad保存为Json或对象，然后在其它地方恢复原来的画板设置：</p>-->
+        <div style="text-align: center; margin: 12px 0 12px">
+            <button id="recover-button" onclick="recover()">生成图像</button>
+        </div>
+
+        <div style="text-align: center">
+            <canvas class="sketchpad" id="other-sketchpad">浏览器不支持画板</canvas>
+        </div>
+
+    </section>
 </div>
 	
 	<script src="../common/jquery/jquery-3.2.1.min.js" type="text/javascript"></script>
-	<script src="../js/sketchpad.js" type="text/javascript"></script>
+	<script src="../js/sketchpad.js" type="text/javascript"></script>   <!--自定义方法-->
 	<script type="text/javascript">
 		var sketchpad;
 	      $(document).ready(function() {
 	        sketchpad = new Sketchpad({
 	          element: '#sketchpad',
-	          width: 400,
+	          width: 500,
 	          height: 400
 	        });
-	        $('#color-picker').change(color);
+	        $('#color-picker').change(color); //
 	        $('#color-picker').val('#000');
-	        $('#size-picker').change(size);
-	        $('#size-picker').val(1);
+	        $('#size-picker').change(size); //
+	        $('#size-picker').val(5);
+
+	        init_other();
 	      });
+	      // 撤销
 	      function undo() {
-	        sketchpad.undo();
+	          sketchpad.undo();
 	      }
+	      // 回复
 	      function redo() {
-	        sketchpad.redo();
+	          sketchpad.redo();
 	      }
+	      // 清除
+	      function clearAll() {
+	          sketchpad.clearAll();
+          }
+          // 设置颜色
 	      function color(event) {
 	        sketchpad.color = $(event.target).val();
 	      }
+	      // 设置笔画
 	      function size(event) {
 	        sketchpad.penSize = $(event.target).val();
 	      }
+	      // 动作回放
 	      function animateSketchpad() {
 	        sketchpad.animate(10);
 	      }
-
-	      function recover(event) {
+            // 生成图片
+	      function recover() {
 	        var settings = sketchpad.toObject();
 	        settings.element = '#other-sketchpad';
 	        var otherSketchpad = new Sketchpad(settings);
-	        $('#recover-button').hide();
+//               window.otherSketchpad.sync(event);
+              otherSketchpad.animate(10);
 	      }
+	      
+	      function init_other() {
+              var settings = sketchpad.toObject();
+              settings.element = '#other-sketchpad';
+              settings.copy = true;
+              window.otherSketchpad = new Sketchpad(settings);
+          }
 	</script>
 
 </body></html>

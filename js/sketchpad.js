@@ -56,11 +56,11 @@ function Sketchpad(config) {
   }
 
   // Stroke control variables
-  this.strokes = config.strokes || [];
+  this.strokes = config.strokes || [];  // 操作过程产生的步骤
   this._currentStroke = {
     color: null,
     size: null,
-    lines: [],
+    lines: [],  // 绘制过程中的点集合
   };
 
   // Undo History
@@ -76,10 +76,12 @@ function Sketchpad(config) {
   this.reset();
 }
 
-//
-// Private API
-//
+/**
+ *
+ * Private API
+ */
 
+// 返回接触点在画布的坐标
 Sketchpad.prototype._cursorPosition = function(event) {
   return {
     x: event.pageX - $(this.canvas).offset().left,
@@ -87,6 +89,7 @@ Sketchpad.prototype._cursorPosition = function(event) {
   };
 };
 
+// 当鼠标移动时不断地调用，不断地绘制
 Sketchpad.prototype._draw = function(start, end, color, size) {
   this._stroke(start, end, color, size, 'source-over');
 };
@@ -95,6 +98,15 @@ Sketchpad.prototype._erase = function(start, end, color, size) {
   this._stroke(start, end, color, size, 'destination-out');
 };
 
+/**
+ *
+ * @param start 起始点坐标
+ * @param end move过程中的点坐标
+ * @param color 画笔颜色
+ * @param size 画笔粗细
+ * @param compositeOperation
+ * @private
+ */
 Sketchpad.prototype._stroke = function(start, end, color, size, compositeOperation) {
   this.context.save();
   this.context.lineJoin = 'round';
@@ -102,18 +114,19 @@ Sketchpad.prototype._stroke = function(start, end, color, size, compositeOperati
   this.context.strokeStyle = color;
   this.context.lineWidth = size;
   this.context.globalCompositeOperation = compositeOperation;
-  this.context.beginPath();
-  this.context.moveTo(start.x, start.y);
-  this.context.lineTo(end.x, end.y);
-  this.context.closePath();
-  this.context.stroke();
+  this.context.beginPath(); // 开启路径
+  this.context.moveTo(start.x, start.y); // 起始点
+  this.context.lineTo(end.x, end.y); // 画轨迹
+  this.context.closePath(); // 创建路径
+  this.context.stroke(); // 绘制
 
-  this.context.restore();
+  this.context.restore(); // 返回之前保存过的路径状态和属性
 };
 
-//
-// Callback Handlers
-//
+/**
+ * Callback Handlers
+ */
+
 
 Sketchpad.prototype._mouseDown = function(event) {
   this._lastPosition = this._cursorPosition(event);
@@ -189,7 +202,7 @@ Sketchpad.prototype._touchMove = function(event) {
   var currentPosition = this._cursorPosition(event.changedTouches[0]);
 
   this._draw(this._lastPosition, currentPosition, this.color, this.penSize);
-  this._currentStroke.lines.push({
+  this._currentStroke.lines.push({  // 添加坐标，画笔绘制过程中的每个点坐标，为过程回放做准备
     start: $.extend(true, {}, this._lastPosition),
     end: $.extend(true, {}, currentPosition),
   });
@@ -197,9 +210,9 @@ Sketchpad.prototype._touchMove = function(event) {
   this._lastPosition = currentPosition;
 };
 
-//
-// Public API
-//
+/**
+ * Public API
+ */
 
 Sketchpad.prototype.reset = function() {
   // Set attributes
@@ -209,9 +222,9 @@ Sketchpad.prototype.reset = function() {
   this.context = this.canvas.getContext('2d');
 
   // Setup event listeners
-  this.redraw(this.strokes);
+  this.redraw(this.strokes);  // 初始化时this.strokes为空数组，存储每一个步骤
 
-  if (this.readOnly) {
+  if (this.readOnly) { // 可忽略
     return;
   }
 
@@ -253,6 +266,9 @@ Sketchpad.prototype.toJSON = function() {
   return JSON.stringify(this.toObject());
 };
 
+/**
+ * 过程回放
+ */
 Sketchpad.prototype.animate = function(ms, loop, loopDelay) {
   this.clear();
   var delay = ms;
@@ -261,8 +277,8 @@ Sketchpad.prototype.animate = function(ms, loop, loopDelay) {
     var stroke = this.strokes[i];
     for (var j = 0; j < stroke.lines.length; j++) {
       var line = stroke.lines[j];
-      callback = this._draw.bind(this, line.start, line.end,
-                                 stroke.color, stroke.size);
+      callback = this._draw.bind(this, line.start, line.end, stroke.color, stroke.size);
+
       this.animateIds.push(setTimeout(callback, delay));
       delay += ms;
     }
@@ -274,6 +290,22 @@ Sketchpad.prototype.animate = function(ms, loop, loopDelay) {
   }
 };
 
+/**
+ * 过程同步
+ */
+Sketchpad.prototype.sync = function (event) {
+    event.preventDefault();
+    var currentPosition = this._cursorPosition(event.changedTouches[0]);
+
+    this._draw(this._lastPosition, currentPosition, this.color, this.penSize);
+    // this._currentStroke.lines.push({  // 添加坐标，画笔绘制过程中的每个点坐标，为过程回放做准备
+    //     start: $.extend(true, {}, this._lastPosition),
+    //     end: $.extend(true, {}, currentPosition),
+    // });
+
+    this._lastPosition = currentPosition;
+}
+
 Sketchpad.prototype.cancelAnimation = function() {
   for (var i = 0; i < this.animateIds.length; i++) {
     clearTimeout(this.animateIds[i]);
@@ -284,6 +316,7 @@ Sketchpad.prototype.clear = function() {
   this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 };
 
+// 撤销，上一步 （删除最后一步，然后从第一步开始重新绘制）
 Sketchpad.prototype.undo = function() {
   this.clear();
   var stroke = this.strokes.pop();
@@ -292,7 +325,7 @@ Sketchpad.prototype.undo = function() {
     this.redraw(this.strokes);
   }
 };
-
+// 取消撤销 （从被删除记录中读取，重新绘制该条记录）
 Sketchpad.prototype.redo = function() {
   var stroke = this.undoHistory.pop();
   if (stroke) {
@@ -300,3 +333,9 @@ Sketchpad.prototype.redo = function() {
     this.drawStroke(stroke);
   }
 };
+
+Sketchpad.prototype.clearAll = function () {
+    this.clear();
+    this.strokes = [];
+    this.undoHistory = [];
+}

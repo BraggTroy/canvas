@@ -3,3 +3,25 @@ html, body {
   height: 100%;
   margin: 0;
 }
+
+.sketchpad {
+    background: #FFF;
+    /*width: 400px;*/
+    /*height: 400px;*/
+    border-radius: 2px;
+
+    -webkit-box-shadow: 2px 2px 5px 0px rgba(50, 50, 50, 0.75);
+    -moz-box-shadow: 2px 2px 5px 0px rgba(50, 50, 50, 0.75);
+    box-shadow: 2px 2px 5px 0px rgba(50, 50, 50, 0.75);
+}
+
+#color-picker{
+    width: 50px;
+}
+#size-picker{
+    vertical-align: middle;
+    height: 30px;
+}
+.hide{
+    display: none;
+}
